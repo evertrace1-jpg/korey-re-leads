@@ -19,3 +19,6 @@ bin/ngrok
 TUNNEL_URL.txt
 static/leads_full_backup.json
 .claude/
+data/geocode_cache.json
+sweep_log.txt
+push_log.txt

@@ -20,9 +20,19 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
+from geocode import (
+    DEFAULT_MAX_MILES,
+    MERRIMACK_NH,
+    geocode,
+    miles_from_merrimack,
+)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT, "data", "dashboard.db")
 LEADS_JSON = os.path.join(ROOT, "static", "leads.json")
+
+# Drive-time radius from Merrimack, NH (~90 min by I-89/I-93/I-95).
+MAX_MILES = float(os.environ.get("RE_LEADS_MAX_MILES", DEFAULT_MAX_MILES))
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
@@ -330,14 +340,26 @@ def fetch_zillow():
 
 
 # --------- DB write ---------
+def ensure_columns(conn) -> None:
+    """Add lat/lng/dist_mi columns if missing (idempotent)."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(re_leads)")}
+    for col, decl in (("lat", "REAL"), ("lng", "REAL"), ("dist_mi", "REAL")):
+        if col not in existing:
+            conn.execute(f"ALTER TABLE re_leads ADD COLUMN {col} {decl}")
+    conn.commit()
+
+
 def insert_leads(leads):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    ensure_columns(conn)
     cur = conn.cursor()
     cur.execute("SELECT LOWER(TRIM(address)) FROM re_leads WHERE address IS NOT NULL")
     existing = {r[0] for r in cur.fetchall() if r[0]}
     inserted = 0
     skipped = 0
+    skipped_geo = 0
+    skipped_radius = 0
     today = datetime.now().strftime("%Y-%m-%d")
     seen_in_batch = set()
     for ld in leads:
@@ -348,14 +370,30 @@ def insert_leads(leads):
         if addr in existing or addr in seen_in_batch:
             skipped += 1
             continue
-        seen_in_batch.add(addr)
+
         city = ld.get("city") or ""
         state = ld.get("state") or ""
+
+        # Drive-time filter: geocode city+state, compute distance from Merrimack,
+        # drop anything outside MAX_MILES (≈90 min drive). Conservative: leads
+        # we cannot geocode are dropped too.
+        coords = geocode(city, state)
+        if coords is None:
+            skipped_geo += 1
+            skipped += 1
+            continue
+        dist = miles_from_merrimack(*coords)
+        if dist > MAX_MILES:
+            skipped_radius += 1
+            skipped += 1
+            continue
+
+        seen_in_batch.add(addr)
         city_state = f"{city}, {state}".strip(", ")
         cur.execute(
             """INSERT INTO re_leads
-            (address, city, units, price, status, gross_rent, owner_agent, phone, email, mls, notes, source, date_added, contacted)
-            VALUES (?, ?, ?, ?, 'New', ?, '', '', '', ?, ?, ?, ?, 0)""",
+            (address, city, units, price, status, gross_rent, owner_agent, phone, email, mls, notes, source, date_added, contacted, lat, lng, dist_mi)
+            VALUES (?, ?, ?, ?, 'New', ?, '', '', '', ?, ?, ?, ?, 0, ?, ?, ?)""",
             (
                 ld.get("address"),
                 city_state,
@@ -366,11 +404,14 @@ def insert_leads(leads):
                 ld.get("notes") or "",
                 ld.get("source"),
                 today,
+                coords[0],
+                coords[1],
+                round(dist, 2),
             ),
         )
         inserted += 1
     conn.commit()
-    return inserted, skipped, conn
+    return inserted, skipped, skipped_geo, skipped_radius, conn
 
 
 def regenerate_leads_json(conn):
@@ -400,7 +441,7 @@ def main():
         for e in errs:
             print(f"  ! {e}", flush=True)
 
-    inserted, skipped, conn = insert_leads(all_rows)
+    inserted, skipped, skipped_geo, skipped_radius, conn = insert_leads(all_rows)
     total = regenerate_leads_json(conn)
     conn.close()
 
@@ -410,9 +451,11 @@ def main():
     print("=" * 50)
     for k, v in counts.items():
         print(f"  {k:14s}: {v} found")
-    print(f"  Inserted     : {inserted}")
-    print(f"  Skipped dupes: {skipped}")
-    print(f"  Total leads  : {total}")
+    print(f"  Inserted             : {inserted}")
+    print(f"  Skipped (dupes/empty): {skipped - skipped_geo - skipped_radius}")
+    print(f"  Skipped (no geocode) : {skipped_geo}")
+    print(f"  Skipped (>{MAX_MILES:.0f} mi)    : {skipped_radius}")
+    print(f"  Total leads in DB    : {total}")
     if errors:
         print("\nERRORS:")
         for e in errors:
