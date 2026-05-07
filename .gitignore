@@ -17,3 +17,5 @@ bin/ngrok
 /tmp/streamlit*.log
 *.log
 TUNNEL_URL.txt
+static/leads_full_backup.json
+.claude/
