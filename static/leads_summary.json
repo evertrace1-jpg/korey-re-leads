@@ -1,0 +1,61 @@
+{
+  "total": 387,
+  "scored": 383,
+  "skipped_no_price": 4,
+  "score_ge_75": 78,
+  "fha_eligible": 267,
+  "best_carry": -2906,
+  "by_carry_tier": {
+    "tenants_cover (carry<=0)": 25,
+    "carry_1_to_800": 36,
+    "carry_801_to_1500": 40,
+    "carry_gt_1500": 282
+  },
+  "by_score_tier": {
+    "score_ge_75": 78,
+    "score_45_74": 35,
+    "score_lt_45": 270
+  },
+  "top5": [
+    {
+      "address": "9 unit residential- Permit ready rehab contractor special, Milton NH, NH",
+      "units": 9,
+      "price": "$615,000",
+      "carry": -2906,
+      "score": 100,
+      "fhaEligible": false
+    },
+    {
+      "address": "90 Mt Vernon St, Saint Johnsbury, VT",
+      "units": 4,
+      "price": "$89,200",
+      "carry": -2283,
+      "score": 100,
+      "fhaEligible": true
+    },
+    {
+      "address": "313 Waldo St, Rumford, ME",
+      "units": 4,
+      "price": "$180,000",
+      "carry": -1517,
+      "score": 100,
+      "fhaEligible": true
+    },
+    {
+      "address": "165 Oxford Ave, Rumford, ME",
+      "units": 3,
+      "price": "$65,000",
+      "carry": -1475,
+      "score": 100,
+      "fhaEligible": true
+    },
+    {
+      "address": "277 Summer Street, St Johnsbury, VT",
+      "units": 4,
+      "price": "$198,000",
+      "carry": -1365,
+      "score": 100,
+      "fhaEligible": true
+    }
+  ]
+}

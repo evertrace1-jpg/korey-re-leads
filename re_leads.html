@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FF6B00" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="RE Leads" />
+  <title>RE Leads — NH/VT/ME</title>
+  <link id="manifest-link" rel="manifest" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card-bg: #141414;
+      --card-border: #222;
+      --orange: #FF6B00;
+      --orange-dim: #cc5500;
+      --white: #ffffff;
+      --gray: #888;
+      --gray-dim: #444;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --green-bg: rgba(34, 197, 94, 0.13);
+      --yellow-bg: rgba(245, 158, 11, 0.13);
+      --red-bg: rgba(239, 68, 68, 0.13);
+    }
+
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Sticky top bar ── */
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid #1c1c1c;
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (min-width: 641px) {
+      .sticky-top { border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+    }
+
+    .header-title {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .header-title .accent { color: var(--orange); }
+
+    .header-sub {
+      font-size: 11px;
+      color: var(--gray);
+      margin-top: 3px;
+    }
+
+    .refresh-btn {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 9px;
+      color: var(--gray);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, color 0.15s;
+      -webkit-user-select: none;
+    }
+    .refresh-btn:active { background: #282828; color: var(--white); }
+    .refresh-btn .r-icon { transition: transform 0.3s; }
+    .refresh-btn.spinning .r-icon { animation: spin 0.7s linear infinite; }
+
+    .filter-bar {
+      display: flex;
+      gap: 7px;
+      padding: 8px 16px 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      color: var(--gray);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 15px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-user-select: none;
+    }
+    .filter-btn.active {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff;
+    }
+    .filter-btn:not(.active):active { background: #282828; }
+
+    /* ── Page body ── */
+    .page-body {
+      max-width: 640px;
+      margin: 0 auto;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    @media (min-width: 641px) {
+      .page-body { border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      padding: 9px 16px;
+      font-size: 12px;
+      color: var(--gray);
+      border-bottom: 1px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .stats-bar strong { color: var(--white); font-weight: 700; }
+    .stats-dot { color: #333; margin: 0 4px; }
+
+    /* ── Geocode progress bar ── */
+    .geo-progress-wrap {
+      padding: 6px 16px 0;
+      display: none;
+    }
+    .geo-progress-wrap.visible { display: block; }
+    .geo-label {
+      font-size: 10px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .geo-bar-track {
+      height: 2px;
+      background: #1c1c1c;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .geo-bar-fill {
+      height: 100%;
+      background: var(--orange);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      padding: 10px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      border-left: 3px solid var(--orange);
+      overflow: hidden;
+      transition: opacity 0.2s;
+    }
+    .card.too-far {
+      border-left-color: #333;
+      opacity: 0.6;
+    }
+
+    /* Card header */
+    .card-head {
+      padding: 13px 14px 11px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .card-address-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-address {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1.25;
+      flex: 1;
+    }
+    .card-address a { color: var(--white); text-decoration: none; }
+    .card-address a:active { color: var(--orange); }
+
+    .card-badges {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: #252525;
+      color: var(--gray);
+      white-space: nowrap;
+    }
+    .status-pill.active    { background: var(--green-bg); color: var(--green); }
+    .status-pill.contacted { background: rgba(255,107,0,.15); color: var(--orange); }
+    .status-pill.hot       { background: rgba(239,68,68,.15); color: var(--red); }
+
+    /* Drive time badge */
+    .dt-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .dt-badge.loading  { background: #1c1c1c; color: #444; }
+    .dt-badge.near     { background: var(--green-bg); color: var(--green); }
+    .dt-badge.medium   { background: var(--yellow-bg); color: var(--yellow); }
+    .dt-badge.far      { background: var(--red-bg); color: var(--red); }
+    .dt-badge.unknown  { background: #1c1c1c; color: #555; }
+
+    /* Verified badge */
+    .verify-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .verify-badge.ok  { background: var(--green-bg); color: var(--green); }
+    .verify-badge.bad { background: var(--red-bg); color: var(--red); }
+
+    .card-location {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: 3px;
+    }
+
+    /* Primary metrics: 2-column grid */
+    .card-metrics {
+      padding: 12px 14px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 10px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .metric-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--gray);
+      margin-bottom: 3px;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .metric-sub {
+      font-size: 11px;
+      color: var(--gray);
+      margin-top: 3px;
+    }
+    .metric-value.green  { color: var(--green); }
+    .metric-value.yellow { color: var(--yellow); }
+    .metric-value.red    { color: var(--red); }
+
+    /* Score + cap rate side by side */
+    .score-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .score-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 11px;
+      font-size: 20px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .score-badge.green  { background: var(--green-bg);  color: var(--green); }
+    .score-badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .score-badge.red    { background: var(--red-bg);    color: var(--red); }
+
+    .score-detail .cap-rate {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .score-detail .cap-label {
+      font-size: 10px;
+      color: var(--gray);
+      margin-top: 2px;
+    }
+
+    /* Secondary metrics row */
+    .card-secondary {
+      padding: 9px 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      border-bottom: 1px solid #1e1e1e;
+      background: #111;
+    }
+    .sec-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #555;
+      margin-bottom: 2px;
+    }
+    .sec-value {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #bbb;
+    }
+
+    /* Card footer */
+    .card-footer {
+      padding: 11px 14px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card-meta {
+      font-size: 12px;
+      color: var(--gray);
+      line-height: 1.55;
+      min-width: 0;
+    }
+    .card-meta .owner { color: #bbb; font-weight: 600; }
+    .card-meta .phone { color: #666; }
+    .card-meta .note {
+      font-style: italic;
+      color: #555;
+      font-size: 11px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+
+    .call-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      padding: 13px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-user-select: none;
+      letter-spacing: -0.2px;
+      min-width: 105px;
+    }
+    .call-btn:active { background: var(--orange-dim); transform: scale(0.96); }
+    .call-btn.disabled {
+      background: #222;
+      color: #444;
+      pointer-events: none;
+    }
+
+    /* ── State screens ── */
+    .state-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 24px 48px;
+      text-align: center;
+      gap: 12px;
+    }
+    .state-icon  { font-size: 52px; line-height: 1; }
+    .state-title { font-size: 17px; font-weight: 600; color: #bbb; }
+    .state-sub   { font-size: 13px; color: #555; max-width: 260px; line-height: 1.5; }
+    .retry-btn {
+      margin-top: 8px;
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    .retry-btn:active { background: #282828; }
+
+    .spinner-ring {
+      width: 44px;
+      height: 44px;
+      border: 3px solid #222;
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .pull-hint {
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Sticky header + filters ── -->
+  <div class="sticky-top">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-title">🏠 RE <span class="accent">Leads</span></div>
+        <div class="header-sub" id="last-updated">Loading…</div>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+        <span class="r-icon">↻</span> Refresh
+      </button>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all"     onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn"        data-filter="drive50" onclick="setFilter('drive50',this)">🚗 ≤50 min</button>
+      <button class="filter-btn"        data-filter="cf500"   onclick="setFilter('cf500',this)">🎯 ≥$500/unit</button>
+      <button class="filter-btn"        data-filter="strong"  onclick="setFilter('strong',this)">⭐ Score ≥75</button>
+    </div>
+    <!-- Geocoding progress bar -->
+    <div class="geo-progress-wrap" id="geo-progress-wrap">
+      <div class="geo-label" id="geo-label">Verifying addresses…</div>
+      <div class="geo-bar-track">
+        <div class="geo-bar-fill" id="geo-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Page body ── -->
+  <div class="page-body">
+    <div class="stats-bar" id="stats-bar">&nbsp;</div>
+    <div class="cards" id="cards-container">
+      <div class="state-screen">
+        <div class="spinner-ring"></div>
+        <div class="state-title">Fetching leads…</div>
+        <div class="state-sub">Pulling from Google Sheets</div>
+      </div>
+    </div>
+    <div class="pull-hint" id="pull-hint"></div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    //  Config
+    // ═══════════════════════════════════════════════════════════════
+    const SHEET_URL  =
+      'https://docs.google.com/spreadsheets/d/10g__NGVazTjNYTEUtYXuAlL2G_q7rc6dvRj3oTbV3q8/export?format=csv&gid=0';
+    const REFRESH_MS = 5 * 60 * 1000;
+
+    // Merrimack, NH — origin for drive-time calculations
+    const ORIGIN = { lat: 42.8645, lon: -71.4848 };
+    const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+    const OSRM      = 'https://router.project-osrm.org/route/v1/driving';
+    const GEO_DELAY = 1150; // ms between Nominatim calls (rate limit: 1 req/sec)
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PWA Manifest
+    // ═══════════════════════════════════════════════════════════════
+    (function injectManifest() {
+      const m = {
+        name: "RE Leads — NH/VT/ME",
+        short_name: "RE Leads",
+        description: "Multifamily deal tracker — house hack NH/VT/ME",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#0a0a0a",
+        theme_color: "#FF6B00",
+        orientation: "portrait-primary",
+        icons: [{
+          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23FF6B00'/%3E%3Ctext x='96' y='380' font-size='320' font-family='Apple Color Emoji,Segoe UI Emoji,sans-serif'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E",
+          sizes: "512x512",
+          type: "image/svg+xml",
+          purpose: "any maskable"
+        }]
+      };
+      try {
+        const blob = new Blob([JSON.stringify(m)], { type: 'application/manifest+json' });
+        document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+      } catch (e) {}
+    })();
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Service Worker
+    // ═══════════════════════════════════════════════════════════════
+    if ('serviceWorker' in navigator) {
+      const src = `self.addEventListener('install',()=>self.skipWaiting());
+        self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+      try {
+        const blob = new Blob([src], { type: 'text/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: './' }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  State
+    // ═══════════════════════════════════════════════════════════════
+    let allProperties  = [];
+    let activeFilter   = 'all';
+    let refreshTimer   = null;
+    let geoRunning     = false;
+    let geoAbort       = false;
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Helpers
+    // ═══════════════════════════════════════════════════════════════
+    function parseNum(v) {
+      if (v === null || v === undefined || v === '') return 0;
+      return parseFloat(String(v).replace(/[$,\s%]/g, '')) || 0;
+    }
+    function fmt(n, d = 0) {
+      return isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
+    }
+    function fmtMoney(n) {
+      if (!isFinite(n)) return '—';
+      const a = Math.abs(n);
+      if (a >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
+      if (a >= 1_000)     return '$' + Math.round(n / 1000) + 'K';
+      return '$' + Math.round(n).toLocaleString();
+    }
+    function fmtCF(n) {
+      if (!isFinite(n)) return '—';
+      return (n >= 0 ? '+' : '−') + '$' + fmt(Math.abs(Math.round(n)));
+    }
+    function cfColorClass(v)    { return v >= 500 ? 'green' : v >= 200 ? 'yellow' : 'red'; }
+    function scoreColorClass(s) { return s >= 75  ? 'green' : s >= 45  ? 'yellow' : 'red'; }
+    function statusPillClass(s) {
+      const l = (s || '').toLowerCase();
+      if (l.includes('hot'))     return 'hot';
+      if (l.includes('active'))  return 'active';
+      if (l.includes('contact')) return 'contacted';
+      return '';
+    }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  sessionStorage cache for geocode/drive-time results
+    // ═══════════════════════════════════════════════════════════════
+    const CACHE_VERSION = 'v2';
+    function cacheKey(row) {
+      return `re_geo_${CACHE_VERSION}_` +
+        [row.Address, row.City, row.State, row.Zip].join('|').toLowerCase().replace(/\s+/g, '');
+    }
+    function cacheGet(row) {
+      try { return JSON.parse(sessionStorage.getItem(cacheKey(row))); } catch { return null; }
+    }
+    function cacheSet(row, data) {
+      try { sessionStorage.setItem(cacheKey(row), JSON.stringify(data)); } catch {}
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Geocode via Nominatim → drive time via OSRM
+    //  Returns: { minutes, lat, lon, verified } | null
+    // ═══════════════════════════════════════════════════════════════
+    async function fetchGeoAndDriveTime(row) {
+      // Build search query: prefer full address, fall back to city+state
+      const parts = [row.Address, row.City, row.State, row.Zip].map(s => (s || '').trim()).filter(Boolean);
+      if (!parts.length) return { verified: false, minutes: null, lat: null, lon: null };
+
+      const query = encodeURIComponent(parts.join(', ') + ', USA');
+      let lat, lon;
+
+      try {
+        const geoResp = await fetch(
+          `${NOMINATIM}?q=${query}&format=json&limit=1&addressdetails=0`,
+          { headers: { 'User-Agent': 'RELeadsApp/1.0 (drakebosco1@gmail.com)' } }
+        );
+        const geoData = await geoResp.json();
+
+        if (!geoData.length) {
+          // Retry with just city+state (address might be bad)
+          const cityQuery = encodeURIComponent([row.City, row.State, 'USA'].filter(Boolean).join(', '));
+          const r2 = await fetch(
+            `${NOMINATIM}?q=${cityQuery}&format=json&limit=1`,
+            { headers: { 'User-Agent': 'RELeadsApp/1.0 (drakebosco1@gmail.com)' } }
+          );
+          const d2 = await r2.json();
+          if (!d2.length) return { verified: false, minutes: null, lat: null, lon: null };
+          lat = parseFloat(d2[0].lat);
+          lon = parseFloat(d2[0].lon);
+          // If only city geocoded, don't mark as fully verified
+          return await getRouteTime(lat, lon, false);
+        }
+
+        lat = parseFloat(geoData[0].lat);
+        lon = parseFloat(geoData[0].lon);
+      } catch (e) {
+        return { verified: false, minutes: null, lat: null, lon: null };
+      }
+
+      return await getRouteTime(lat, lon, true);
+    }
+
+    async function getRouteTime(lat, lon, verified) {
+      try {
+        const url = `${OSRM}/${ORIGIN.lon},${ORIGIN.lat};${lon},${lat}?overview=false`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.routes?.length) {
+          const minutes = Math.round(data.routes[0].duration / 60);
+          return { verified, minutes, lat, lon };
+        }
+      } catch {}
+      // OSRM failed — fall back to straight-line estimate (circuity 1.35, 45 mph avg)
+      const EARTH_R = 3958.8; // miles
+      const dLat = (lat - ORIGIN.lat) * Math.PI / 180;
+      const dLon = (lon - ORIGIN.lon) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(ORIGIN.lat * Math.PI/180) * Math.cos(lat * Math.PI/180) * Math.sin(dLon/2)**2;
+      const miles    = EARTH_R * 2 * Math.asin(Math.sqrt(a));
+      const roadMi   = miles * 1.35; // circuity factor
+      const minutes  = Math.round(roadMi / 45 * 60);
+      return { verified, minutes, lat, lon, estimated: true };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Progressive geocoding — runs after cards are rendered
+    // ═══════════════════════════════════════════════════════════════
+    async function loadDriveTimes() {
+      if (geoRunning) { geoAbort = true; await sleep(200); }
+      geoAbort   = false;
+      geoRunning = true;
+
+      const needed = allProperties.filter(p => !p.geo);
+      if (!needed.length) { geoRunning = false; return; }
+
+      const wrap  = document.getElementById('geo-progress-wrap');
+      const fill  = document.getElementById('geo-bar-fill');
+      const label = document.getElementById('geo-label');
+      wrap.classList.add('visible');
+
+      let done = 0;
+      for (const p of needed) {
+        if (geoAbort) break;
+
+        // Check cache first (instant)
+        const cached = cacheGet(p.row);
+        if (cached) {
+          p.geo = cached;
+        } else {
+          p.geo = await fetchGeoAndDriveTime(p.row);
+          cacheSet(p.row, p.geo);
+          await sleep(GEO_DELAY); // respect Nominatim 1 req/sec
+        }
+
+        done++;
+        const pct = Math.round(done / needed.length * 100);
+        fill.style.width = pct + '%';
+        label.textContent = `Verifying ${done}/${needed.length} addresses…`;
+
+        // Update this card's badges live
+        updateCardBadges(p);
+
+        // Re-apply filter if active filter is drive50
+        if (activeFilter === 'drive50') applyFilter();
+      }
+
+      wrap.classList.remove('visible');
+      fill.style.width = '0%';
+      geoRunning = false;
+
+      // Final filter pass
+      applyFilter();
+      updateStats(getFiltered());
+    }
+
+    function updateCardBadges(p) {
+      const dtEl = document.getElementById(`dt-${p.id}`);
+      const vEl  = document.getElementById(`vf-${p.id}`);
+      const card = document.getElementById(`card-${p.id}`);
+      if (!dtEl || !p.geo) return;
+
+      const { minutes, verified, estimated } = p.geo;
+
+      // Drive time badge
+      if (minutes === null) {
+        dtEl.textContent = '📍 ?';
+        dtEl.className   = 'dt-badge unknown';
+      } else {
+        const suffix = estimated ? '~' : '';
+        dtEl.textContent = `🚗 ${suffix}${minutes} min`;
+        dtEl.className = 'dt-badge ' + (minutes <= 30 ? 'near' : minutes <= 50 ? 'medium' : 'far');
+        if (card) card.classList.toggle('too-far', minutes > 50);
+      }
+
+      // Verified badge
+      if (vEl) {
+        vEl.textContent = verified ? '✓ Real' : '⚠ Unverified';
+        vEl.className   = 'verify-badge ' + (verified ? 'ok' : 'bad');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Financial Calculations
+    // ═══════════════════════════════════════════════════════════════
+    function calculate(row) {
+      const price     = parseNum(row.Price);
+      const grossRent = parseNum(row.GrossRent);
+      const units     = parseNum(row.Units) || 1;
+      if (!price || !grossRent) return null;
+
+      const opExAnnual      = grossRent * 0.45 * 12;
+      const noiAnnual       = grossRent * 12 - opExAnnual;
+      const capRate         = noiAnnual / price;
+      const downPayment     = price * 0.25;
+      const loanAmount      = price * 0.75;
+      const r               = 0.07 / 12;
+      const n               = 360;
+      const monthlyMortgage = loanAmount * (r * Math.pow(1+r,n)) / (Math.pow(1+r,n) - 1);
+      const monthlyCashFlow = (grossRent - opExAnnual/12) - monthlyMortgage;
+      const cashFlowPerUnit = monthlyCashFlow / units;
+
+      let dealScore;
+      if      (capRate >= 0.07 && cashFlowPerUnit >= 500) dealScore = 95;
+      else if (capRate >= 0.07 && cashFlowPerUnit >= 300) dealScore = 80;
+      else if (capRate >= 0.05 && cashFlowPerUnit >= 500) dealScore = 75;
+      else if (capRate >= 0.05 && cashFlowPerUnit >= 0)   dealScore = 60;
+      else if (capRate >= 0.04 && cashFlowPerUnit >= 0)   dealScore = 45;
+      else                                                  dealScore = 20;
+
+      return {
+        price, grossRent, units,
+        opExAnnual, noiAnnual, capRate,
+        downPayment, loanAmount, monthlyMortgage,
+        monthlyCashFlow, cashFlowPerUnit, dealScore
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Card Template
+    // ═══════════════════════════════════════════════════════════════
+    function buildCard(p) {
+      const { row, calc, id, geo } = p;
+      const address  = (row.Address  || 'Unknown Address').trim();
+      const city     = (row.City     || '').trim();
+      const state    = (row.State    || '').trim();
+      const zip      = (row.Zip      || '').trim();
+      const location = [city + (state ? ', ' + state : ''), zip].filter(Boolean).join(' ');
+      const phone    = (row.Phone    || '').trim();
+      const owner    = (row.OwnerName || '').trim();
+      const notes    = (row.Notes    || '').trim();
+      const status   = (row.Status   || '').trim();
+      const listing  = (row.ListingURL || '').trim();
+
+      const cfCls = cfColorClass(calc.cashFlowPerUnit);
+      const sCls  = scoreColorClass(calc.dealScore);
+      const tooFar = geo && geo.minutes !== null && geo.minutes > 50;
+
+      // Drive time badge state
+      let dtClass = 'loading', dtText = '🚗 …';
+      let vfClass = '', vfText = '';
+      if (geo) {
+        const { minutes, verified, estimated } = geo;
+        if (minutes === null) {
+          dtClass = 'unknown'; dtText = '📍 ?';
+        } else {
+          dtClass = minutes <= 30 ? 'near' : minutes <= 50 ? 'medium' : 'far';
+          dtText  = `🚗 ${estimated ? '~' : ''}${minutes} min`;
+        }
+        vfClass = verified ? 'ok' : 'bad';
+        vfText  = verified ? '✓ Real' : '⚠ Unverified';
+      }
+
+      const addressEl = listing
+        ? `<a href="${listing}" target="_blank" rel="noopener noreferrer">${address}</a>`
+        : address;
+      const statusEl = status
+        ? `<span class="status-pill ${statusPillClass(status)}">${status}</span>`
+        : '';
+      const callEl = phone
+        ? `<a class="call-btn" href="tel:+1${phone.replace(/\D/g,'')}">📞 Call</a>`
+        : `<span class="call-btn disabled">📞 No #</span>`;
+
+      const metaLines = [];
+      if (owner) metaLines.push(`<span class="owner">${owner}</span>`);
+      if (phone) metaLines.push(`<span class="phone">${phone}</span>`);
+      if (notes) metaLines.push(`<span class="note">${notes}</span>`);
+
+      return `
+        <div class="card${tooFar ? ' too-far' : ''}" id="card-${id}">
+
+          <div class="card-head">
+            <div class="card-address-row">
+              <div class="card-address">${addressEl}</div>
+              <div class="card-badges">
+                ${statusEl}
+                <span class="dt-badge ${dtClass}" id="dt-${id}">${dtText}</span>
+                ${vfText ? `<span class="verify-badge ${vfClass}" id="vf-${id}">${vfText}</span>` : `<span class="verify-badge" id="vf-${id}" style="display:none"></span>`}
+              </div>
+            </div>
+            <div class="card-location">${location || '&nbsp;'}</div>
+          </div>
+
+          <div class="card-metrics">
+            <div class="metric">
+              <div class="metric-label">Asking Price</div>
+              <div class="metric-value">${fmtMoney(calc.price)}</div>
+              <div class="metric-sub">${calc.units} unit${calc.units !== 1 ? 's' : ''} · ${fmtMoney(calc.downPayment)} down</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Gross Rent / mo</div>
+              <div class="metric-value">$${fmt(calc.grossRent)}</div>
+              <div class="metric-sub">$${fmt(calc.grossRent * 12)} / yr</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Cash Flow / Unit</div>
+              <div class="metric-value ${cfCls}">${fmtCF(calc.cashFlowPerUnit)}/mo</div>
+              <div class="metric-sub">Total ${fmtCF(calc.monthlyCashFlow)}/mo</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Deal Score</div>
+              <div class="score-cell">
+                <div class="score-badge ${sCls}">${calc.dealScore}</div>
+                <div class="score-detail">
+                  <div class="cap-rate">${(calc.capRate * 100).toFixed(2)}%</div>
+                  <div class="cap-label">Cap Rate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-secondary">
+            <div class="sec-metric">
+              <div class="sec-label">NOI / yr</div>
+              <div class="sec-value">${fmtMoney(calc.noiAnnual)}</div>
+            </div>
+            <div class="sec-metric">
+              <div class="sec-label">Mortgage / mo</div>
+              <div class="sec-value">$${fmt(calc.monthlyMortgage)}</div>
+            </div>
+            <div class="sec-metric">
+              <div class="sec-label">Down Pmt</div>
+              <div class="sec-value">${fmtMoney(calc.downPayment)}</div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <div class="card-meta">${metaLines.join('<br>')}</div>
+            ${callEl}
+          </div>
+
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Render
+    // ═══════════════════════════════════════════════════════════════
+    function renderCards(list) {
+      const container = document.getElementById('cards-container');
+      if (!list.length) {
+        const isGeoFilter = activeFilter === 'drive50';
+        container.innerHTML = `
+          <div class="state-screen">
+            <div class="state-icon">${isGeoFilter ? '🗺️' : '🔍'}</div>
+            <div class="state-title">${isGeoFilter ? 'Still calculating drive times…' : 'No leads match this filter'}</div>
+            <div class="state-sub">${isGeoFilter
+              ? 'Drive times are loading in the background. Check back in a moment.'
+              : 'Try switching to <strong>All</strong> or adding more leads to the sheet.'}</div>
+          </div>`;
+        return;
+      }
+      container.innerHTML = list.map(p => buildCard(p)).join('');
+    }
+
+    function getFiltered() {
+      if (activeFilter === 'drive50') {
+        return allProperties.filter(p => p.geo && p.geo.minutes !== null && p.geo.minutes <= 50);
+      }
+      if (activeFilter === 'cf500')  return allProperties.filter(p => p.calc.cashFlowPerUnit >= 500);
+      if (activeFilter === 'strong') return allProperties.filter(p => p.calc.dealScore >= 75);
+      return allProperties;
+    }
+
+    function updateStats(filtered) {
+      const total  = allProperties.length;
+      const cf500  = allProperties.filter(p => p.calc.cashFlowPerUnit >= 500).length;
+      const near   = allProperties.filter(p => p.geo && p.geo.minutes !== null && p.geo.minutes <= 50).length;
+      const geoLoaded = allProperties.filter(p => p.geo).length;
+      document.getElementById('stats-bar').innerHTML = `
+        <strong>${filtered.length}</strong> shown
+        <span class="stats-dot">•</span>
+        <strong>${total}</strong> total
+        <span class="stats-dot">•</span>
+        <strong>${cf500}</strong> ≥$500/unit
+        <span class="stats-dot">•</span>
+        🚗 <strong>${near}</strong>/${geoLoaded} within 50 min
+      `;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Filter
+    // ═══════════════════════════════════════════════════════════════
+    function setFilter(filter, btn) {
+      activeFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilter();
+    }
+
+    function applyFilter() {
+      const list = getFiltered();
+      renderCards(list);
+      updateStats(list);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Data Loading
+    // ═══════════════════════════════════════════════════════════════
+    let propIdCounter = 0;
+
+    function loadData() {
+      const btn    = document.getElementById('refresh-btn');
+      const lastEl = document.getElementById('last-updated');
+
+      geoAbort = true; // cancel any in-flight geocoding
+      btn.classList.add('spinning');
+      lastEl.textContent = 'Refreshing…';
+
+      Papa.parse(SHEET_URL, {
+        download: true, header: true, skipEmptyLines: true,
+
+        complete(results) {
+          btn.classList.remove('spinning');
+
+          if (!results.data?.length) {
+            document.getElementById('cards-container').innerHTML = `
+              <div class="state-screen">
+                <div class="state-icon">📭</div>
+                <div class="state-title">Sheet is empty</div>
+                <div class="state-sub">Add properties to the Google Sheet and refresh.</div>
+              </div>`;
+            lastEl.textContent = 'No data';
+            return;
+          }
+
+          // Carry over existing geo data if address matches
+          const prevGeoMap = {};
+          allProperties.forEach(p => {
+            if (p.geo) prevGeoMap[cacheKey(p.row)] = p.geo;
+          });
+
+          allProperties = results.data
+            .map(row => {
+              const calc = calculate(row);
+              if (!calc) return null;
+              const id  = propIdCounter++;
+              const geo = prevGeoMap[cacheKey(row)] || cacheGet(row) || null;
+              return { row, calc, id, geo };
+            })
+            .filter(Boolean)
+            .sort((a, b) =>
+              b.calc.dealScore       - a.calc.dealScore ||
+              b.calc.cashFlowPerUnit - a.calc.cashFlowPerUnit
+            );
+
+          applyFilter();
+
+          const now  = new Date();
+          const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          lastEl.textContent = `Updated ${time} · ${allProperties.length} leads`;
+
+          // Start progressive geocoding
+          loadDriveTimes();
+        },
+
+        error(err) {
+          btn.classList.remove('spinning');
+          document.getElementById('cards-container').innerHTML = `
+            <div class="state-screen">
+              <div class="state-icon">⚠️</div>
+              <div class="state-title">Could not load data</div>
+              <div class="state-sub">Check your internet and that the sheet is shared publicly.</div>
+              <button class="retry-btn" onclick="loadData()">↻ Try Again</button>
+            </div>`;
+          lastEl.textContent = 'Error — tap Refresh';
+          console.error('Sheet fetch error:', err);
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Auto-refresh + visibility resume
+    // ═══════════════════════════════════════════════════════════════
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadData, REFRESH_MS);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadData();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Init
+    // ═══════════════════════════════════════════════════════════════
+    loadData();
+    startAutoRefresh();
+  </script>
+</body>
+</html>

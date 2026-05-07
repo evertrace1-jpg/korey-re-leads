@@ -1,0 +1,6 @@
+id,address,city,units,price,status,gross_rent,owner_agent,phone,email,mls,notes,contacted,date_added,source
+1,38 Washington St,Claremont,3,"$360,000",active,fully rented,Experience Homes Group,,,5070330,"Best value pick — ~$18K down at 5%, est. $350/mo net out of pocket.",0,2026-05-05,MLS
+2,19 Sanders St,Concord (Penacook),3,"$525,000",active,tenants pay utilities,,,,5083378,"Detached 2-car garage, I-93 access. Worth $490K offer.",0,2026-05-05,MLS
+3,157 Rumford St,Concord,3,"$550,000",active,month-to-month tenants,,,,5068434,Listed since Nov 2025 (6+ months on market = seller motivated).,0,2026-05-05,MLS
+4,Manchester East Side,Manchester,3,"$530,000",watch,"$6,700/mo ($2,350 + $2,200 + $2,150)",,,,,Best rental income of the batch.,0,2026-05-05,research
+5,32 Mill St,Rochester,,"$899,000",watch,,,,,,"First sale in 45 years — motivated seller, explore creative / seller financing.",0,2026-05-05,research

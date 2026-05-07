@@ -1,0 +1,12 @@
+streamlit>=1.32,<2
+tastytrade==9.10
+# pandas-market-calendars 5.x requires Python 3.10+ (uses PEP 604 union syntax).
+# Pin to 4.x for system Python 3.9 compatibility.
+pandas-market-calendars<5
+python-dotenv>=1.0
+pandas>=2.0
+plotly>=5.20
+yfinance>=0.2.40
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=4.9

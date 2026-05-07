@@ -1,0 +1,18 @@
+[theme]
+base = "dark"
+primaryColor = "#22c55e"
+backgroundColor = "#0b0f17"
+secondaryBackgroundColor = "#111827"
+textColor = "#e5e7eb"
+font = "monospace"
+
+[server]
+headless = true
+address = "0.0.0.0"
+port = 8501
+runOnSave = true
+enableXsrfProtection = true
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false

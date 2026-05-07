@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FF6B00" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="House Hack" />
+  <title>House Hack — NH/VT/ME</title>
+  <link id="manifest-link" rel="manifest" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card-bg: #141414;
+      --card-border: #222;
+      --orange: #FF6B00;
+      --orange-dim: #cc5500;
+      --white: #ffffff;
+      --gray: #888;
+      --gray-dim: #444;
+      --green: #22c55e;
+      --green-bright: #4ade80;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --green-bg: rgba(34, 197, 94, 0.13);
+      --yellow-bg: rgba(245, 158, 11, 0.13);
+      --red-bg: rgba(239, 68, 68, 0.13);
+      --orange-bg: rgba(255, 107, 0, 0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Helvetica, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .sticky-top {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid #1c1c1c;
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (min-width: 641px) {
+      .sticky-top { border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+    }
+    .header-title {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .header-title .accent { color: var(--orange); }
+    .header-sub { font-size: 11px; color: var(--gray); margin-top: 3px; }
+
+    .refresh-btn {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 9px;
+      color: var(--gray);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .refresh-btn:active { background: #282828; color: var(--white); }
+    .refresh-btn.spinning .icon { display: inline-block; animation: spin 0.7s linear infinite; }
+
+    .filter-bar {
+      display: flex;
+      gap: 7px;
+      padding: 8px 16px 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-btn {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      color: var(--gray);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 15px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff;
+    }
+    .filter-btn:not(.active):active { background: #282828; }
+
+    /* Geocoding progress bar */
+    .geo-progress-wrap {
+      padding: 6px 16px 0;
+      display: none;
+    }
+    .geo-progress-wrap.visible { display: block; }
+    .geo-label { font-size: 10px; color: #555; margin-bottom: 4px; }
+    .geo-bar-track {
+      height: 2px;
+      background: #1c1c1c;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .geo-bar-fill {
+      height: 100%;
+      background: var(--orange);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .page-body {
+      max-width: 640px;
+      margin: 0 auto;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    @media (min-width: 641px) {
+      .page-body { border-left: 1px solid #1c1c1c; border-right: 1px solid #1c1c1c; }
+    }
+
+    .stats-bar {
+      padding: 9px 16px;
+      font-size: 12px;
+      color: var(--gray);
+      border-bottom: 1px solid #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .stats-bar strong { color: var(--white); font-weight: 700; }
+    .stats-dot { color: #333; margin: 0 4px; }
+
+    /* Mission banner */
+    .mission {
+      padding: 8px 16px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      border-bottom: 1px solid #1a1a1a;
+      letter-spacing: 0.3px;
+    }
+    .mission strong { color: var(--orange); }
+
+    /* Cards */
+    .cards {
+      padding: 10px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      border-left: 3px solid var(--orange);
+      overflow: hidden;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .card.too-far { border-left-color: #333; opacity: 0.6; }
+    .card.tenants-cover { border-left-color: var(--green-bright); }
+
+    .card-body { padding: 14px 14px 12px; }
+
+    /* Line 1: address */
+    .card-address {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      line-height: 1.25;
+      color: var(--white);
+    }
+
+    /* Line 2: drive time badge */
+    .card-driverow {
+      margin-top: 6px;
+      min-height: 18px;
+    }
+    .dt-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .dt-badge.loading  { background: #1c1c1c; color: #444; }
+    .dt-badge.near     { background: var(--green-bg); color: var(--green); }
+    .dt-badge.medium   { background: var(--yellow-bg); color: var(--yellow); }
+    .dt-badge.far      { background: var(--red-bg); color: var(--red); }
+    .dt-badge.unknown  { background: #1c1c1c; color: #555; }
+
+    /* Line 3: units · price · down */
+    .card-keynums {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #bbb;
+      font-weight: 600;
+    }
+    .card-keynums .sep { color: #444; margin: 0 6px; }
+    .card-keynums .down { color: var(--gray); }
+
+    /* Line 4: monthly carry */
+    .carry-block { margin-top: 12px; }
+    .carry-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+    .carry-value {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .carry-value.green { color: var(--green); }
+    .carry-value.green-bright { color: var(--green-bright); }
+    .carry-value.orange { color: var(--orange-dim); }
+    .carry-value.red { color: var(--red); }
+    .carry-suffix { font-size: 14px; font-weight: 700; opacity: 0.7; }
+    .carry-celebrate {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green-bright);
+    }
+
+    /* Line 5: badges row */
+    .badges-row {
+      margin-top: 11px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 4px 9px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .pill.score-high   { background: var(--green-bg); color: var(--green); }
+    .pill.score-mid    { background: var(--yellow-bg); color: var(--yellow); }
+    .pill.score-low    { background: var(--red-bg); color: var(--red); }
+    .pill.fha          { background: var(--green-bg); color: var(--green); }
+    .pill.conv         { background: #232323; color: #888; }
+    .pill.status-hot   { background: rgba(239,68,68,.15); color: var(--red); }
+    .pill.status-active { background: var(--green-bg); color: var(--green); }
+    .pill.status-contacted { background: var(--orange-bg); color: var(--orange); }
+
+    /* Line 6: call button row */
+    .call-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .call-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: none;
+      text-decoration: none;
+      letter-spacing: -0.2px;
+    }
+    .call-btn:active { background: var(--orange-dim); transform: scale(0.97); }
+    .call-btn.disabled {
+      background: #1c1c1c;
+      color: #555;
+      pointer-events: none;
+    }
+    .expand-btn {
+      background: #1c1c1c;
+      color: var(--gray);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: none;
+      letter-spacing: -0.2px;
+      flex-shrink: 0;
+    }
+    .expand-btn:active { background: #282828; }
+
+    /* Expanded details */
+    .card-details {
+      display: none;
+      background: #0e0e0e;
+      padding: 12px 14px;
+      border-top: 1px solid #1e1e1e;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .card.expanded .card-details { display: block; }
+    .card-details .row { display: flex; gap: 10px; padding: 4px 0; }
+    .card-details .label {
+      color: var(--gray);
+      flex-shrink: 0;
+      min-width: 64px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.4px;
+      padding-top: 2px;
+    }
+    .card-details .value {
+      color: var(--white);
+      word-break: break-word;
+      flex: 1;
+    }
+    .card-details a { color: var(--green); text-decoration: none; }
+    .card-details .breakdown {
+      margin-top: 8px;
+      padding: 10px;
+      background: #161616;
+      border-radius: 8px;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 11px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .card-details .breakdown .num { color: var(--white); font-weight: 700; }
+    .card-details .breakdown .pos { color: var(--green); }
+    .card-details .breakdown .neg { color: var(--red); }
+
+    /* State screens */
+    .state-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 24px 48px;
+      text-align: center;
+      gap: 12px;
+    }
+    .state-icon { font-size: 52px; line-height: 1; }
+    .state-title { font-size: 17px; font-weight: 600; color: #bbb; }
+    .state-sub { font-size: 13px; color: #555; max-width: 260px; line-height: 1.5; }
+    .retry-btn {
+      margin-top: 8px;
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+    }
+    .spinner-ring {
+      width: 44px;
+      height: 44px;
+      border: 3px solid #222;
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .pull-hint {
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sticky-top">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-title">🏠 House <span class="accent">Hack</span></div>
+        <div class="header-sub" id="last-updated">Loading…</div>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+        <span class="icon">↻</span> Refresh
+      </button>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all"      onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn"        data-filter="carry1k"  onclick="setFilter('carry1k', this)">🏠 Carry ≤$1,000</button>
+      <button class="filter-btn"        data-filter="strong"   onclick="setFilter('strong', this)">💚 Score ≥75</button>
+      <button class="filter-btn"        data-filter="fha"      onclick="setFilter('fha', this)">🏦 FHA Eligible</button>
+      <button class="filter-btn"        data-filter="drive50"  onclick="setFilter('drive50', this)">🚗 ≤50 min</button>
+    </div>
+    <div class="geo-progress-wrap" id="geo-progress-wrap">
+      <div class="geo-label" id="geo-label">Verifying addresses…</div>
+      <div class="geo-bar-track">
+        <div class="geo-bar-fill" id="geo-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="mission">Mission: <strong>buy &amp; live in a 2–4 unit by end of 2026</strong></div>
+    <div class="stats-bar" id="stats-bar">&nbsp;</div>
+    <div class="cards" id="cards-container">
+      <div class="state-screen">
+        <div class="spinner-ring"></div>
+        <div class="state-title">Fetching leads…</div>
+      </div>
+    </div>
+    <div class="pull-hint" id="pull-hint"></div>
+  </div>
+
+  <script>
+    // ═════ Config ═════
+    const DATA_URL   = 'leads.json';
+    const REFRESH_MS = 5 * 60 * 1000;
+
+    // FHA underwriting assumptions
+    const FHA_RATE       = 0.075;
+    const FHA_DOWN_PCT   = 0.035;
+    const FHA_LOAN_PCT   = 1 - FHA_DOWN_PCT;
+    const FHA_MIP_ANNUAL = 0.0055;
+    const TAX_INS_ANNUAL = 0.015;
+    const VACANCY_FACTOR = 0.92;
+    const LOAN_TERM_MO   = 360;
+
+    // FHA limits NH/VT/ME 2024
+    const FHA_LIMITS = { 1: 498257, 2: 637950, 3: 771125, 4: 958350 };
+
+    // Drive-time origin (Merrimack, NH)
+    const ORIGIN    = { lat: 42.8645, lon: -71.4848 };
+    const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+    const OSRM      = 'https://router.project-osrm.org/route/v1/driving';
+    const GEO_DELAY = 1150;
+
+    // ═════ PWA Manifest ═════
+    (function injectManifest() {
+      const m = {
+        name: "House Hack — NH/VT/ME",
+        short_name: "House Hack",
+        description: "Owner-occupied multifamily acquisition tracker",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#0a0a0a",
+        theme_color: "#FF6B00",
+        orientation: "portrait-primary",
+        icons: [{
+          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23FF6B00'/%3E%3Ctext x='96' y='380' font-size='320' font-family='Apple Color Emoji,Segoe UI Emoji,sans-serif'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E",
+          sizes: "512x512",
+          type: "image/svg+xml",
+          purpose: "any maskable"
+        }]
+      };
+      try {
+        const blob = new Blob([JSON.stringify(m)], { type: 'application/manifest+json' });
+        document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+      } catch (e) {}
+    })();
+
+    // ═════ Service Worker ═════
+    if ('serviceWorker' in navigator) {
+      const src = `self.addEventListener('install',()=>self.skipWaiting());
+        self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+      try {
+        const blob = new Blob([src], { type: 'text/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(blob), { scope: './' }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // ═════ State ═════
+    let allProperties = [];
+    let activeFilter  = 'all';
+    let refreshTimer  = null;
+    let geoRunning    = false;
+    let geoAbort      = false;
+
+    // ═════ Helpers ═════
+    function parseNum(v) {
+      if (v === null || v === undefined || v === '') return 0;
+      return parseFloat(String(v).replace(/[$,\s%]/g, '')) || 0;
+    }
+    function fmt(n, d = 0) {
+      return isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
+    }
+    function fmtMoney(n) {
+      if (!isFinite(n)) return '—';
+      const a = Math.abs(n);
+      if (a >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
+      if (a >= 1_000)     return '$' + Math.round(n / 1000) + 'K';
+      return '$' + Math.round(n).toLocaleString();
+    }
+    function cleanPhone(p) { return (p || '').replace(/\D/g, ''); }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ═════ House-hack underwriting ═════
+    function houseHack(row) {
+      const price = parseNum(row.Price);
+      const units = Math.max(1, Math.min(4, parseNum(row.Units) || 1));
+      let grossRent = parseNum(row.GrossRent);
+
+      if (!price) return null;
+
+      // Estimate gross rent if missing/zero: units * 1100/unit, 92% occupancy applied later
+      const rentEstimated = !grossRent;
+      if (!grossRent) grossRent = units * 1100;
+
+      const downPayment = price * FHA_DOWN_PCT;
+      const loanAmount  = price * FHA_LOAN_PCT;
+      const mRate = FHA_RATE / 12;
+      const PI = loanAmount * (mRate * Math.pow(1 + mRate, LOAN_TERM_MO))
+                            / (Math.pow(1 + mRate, LOAN_TERM_MO) - 1);
+      const MIP    = (loanAmount * FHA_MIP_ANNUAL) / 12;
+      const TaxIns = (price * TAX_INS_ANNUAL) / 12;
+      const PITI   = PI + MIP + TaxIns;
+
+      // Owner occupies 1 unit, rents (units-1)
+      const rentalIncome = grossRent * (units - 1) / units * VACANCY_FACTOR;
+      const carry = PITI - rentalIncome;
+
+      const fhaLimit = FHA_LIMITS[units] || FHA_LIMITS[1];
+      const fhaEligible = price <= fhaLimit;
+
+      // Score
+      let score;
+      if      (carry <= 0)    score = 100;
+      else if (carry <= 400)  score = 92;
+      else if (carry <= 800)  score = 80;
+      else if (carry <= 1200) score = 65;
+      else if (carry <= 1800) score = 45;
+      else if (carry <= 2500) score = 25;
+      else                    score = 10;
+
+      let bonus = 0;
+      if (fhaEligible)  bonus += 8;
+      if (units >= 3)   bonus += 5;
+      if (carry <= 1000) bonus += 5;
+      score = Math.min(100, score + bonus);
+
+      return {
+        price, units, grossRent, rentEstimated,
+        downPayment, loanAmount,
+        PI, MIP, TaxIns, PITI,
+        rentalIncome, carry,
+        fhaEligible, fhaLimit,
+        houseHackScore: score
+      };
+    }
+
+    function carryColorClass(carry) {
+      if (carry <= 0)    return 'green-bright';
+      if (carry <= 800)  return 'green';
+      if (carry <= 1500) return 'orange';
+      return 'red';
+    }
+    function scorePillClass(s) {
+      if (s >= 75) return 'score-high';
+      if (s >= 45) return 'score-mid';
+      return 'score-low';
+    }
+    function statusPillClass(status) {
+      const s = (status || '').toLowerCase();
+      if (s.includes('hot'))     return 'status-hot';
+      if (s.includes('active'))  return 'status-active';
+      if (s.includes('contact')) return 'status-contacted';
+      return null;
+    }
+
+    // ═════ Geocode cache (sessionStorage) ═════
+    const CACHE_VERSION = 'v3';
+    function cacheKey(row) {
+      return `re_geo_${CACHE_VERSION}_` +
+        [row.Address, row.City].join('|').toLowerCase().replace(/\s+/g, '');
+    }
+    function cacheGet(row) {
+      try { return JSON.parse(sessionStorage.getItem(cacheKey(row))); } catch { return null; }
+    }
+    function cacheSet(row, data) {
+      try { sessionStorage.setItem(cacheKey(row), JSON.stringify(data)); } catch {}
+    }
+
+    async function fetchGeoAndDriveTime(row) {
+      const parts = [row.Address, row.City].map(s => (s || '').trim()).filter(Boolean);
+      if (!parts.length) return { minutes: null, lat: null, lon: null };
+
+      const query = encodeURIComponent(parts.join(', ') + ', USA');
+      let lat, lon;
+      try {
+        const r = await fetch(`${NOMINATIM}?q=${query}&format=json&limit=1`,
+          { headers: { 'User-Agent': 'HouseHackApp/1.0 (drakebosco1@gmail.com)' } });
+        const d = await r.json();
+        if (!d.length) {
+          const cityQ = encodeURIComponent([row.City, 'USA'].filter(Boolean).join(', '));
+          const r2 = await fetch(`${NOMINATIM}?q=${cityQ}&format=json&limit=1`,
+            { headers: { 'User-Agent': 'HouseHackApp/1.0 (drakebosco1@gmail.com)' } });
+          const d2 = await r2.json();
+          if (!d2.length) return { minutes: null, lat: null, lon: null };
+          lat = parseFloat(d2[0].lat); lon = parseFloat(d2[0].lon);
+          return await getRouteTime(lat, lon, true);
+        }
+        lat = parseFloat(d[0].lat); lon = parseFloat(d[0].lon);
+      } catch (e) {
+        return { minutes: null, lat: null, lon: null };
+      }
+      return await getRouteTime(lat, lon, false);
+    }
+
+    async function getRouteTime(lat, lon, estimated) {
+      try {
+        const url = `${OSRM}/${ORIGIN.lon},${ORIGIN.lat};${lon},${lat}?overview=false`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.routes?.length) {
+          return { minutes: Math.round(data.routes[0].duration / 60), lat, lon, estimated };
+        }
+      } catch {}
+      // Haversine fallback
+      const R = 3958.8;
+      const dLat = (lat - ORIGIN.lat) * Math.PI / 180;
+      const dLon = (lon - ORIGIN.lon) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(ORIGIN.lat * Math.PI/180) * Math.cos(lat * Math.PI/180) * Math.sin(dLon/2)**2;
+      const miles = R * 2 * Math.asin(Math.sqrt(a));
+      return { minutes: Math.round(miles * 1.35 / 45 * 60), lat, lon, estimated: true };
+    }
+
+    async function loadDriveTimes() {
+      if (geoRunning) { geoAbort = true; await sleep(200); }
+      geoAbort = false;
+      geoRunning = true;
+
+      const needed = allProperties.filter(p => !p.geo);
+      if (!needed.length) { geoRunning = false; return; }
+
+      const wrap  = document.getElementById('geo-progress-wrap');
+      const fill  = document.getElementById('geo-bar-fill');
+      const label = document.getElementById('geo-label');
+      wrap.classList.add('visible');
+
+      let done = 0;
+      for (const p of needed) {
+        if (geoAbort) break;
+        const cached = cacheGet(p.row);
+        if (cached) {
+          p.geo = cached;
+        } else {
+          p.geo = await fetchGeoAndDriveTime(p.row);
+          cacheSet(p.row, p.geo);
+          await sleep(GEO_DELAY);
+        }
+        done++;
+        fill.style.width = Math.round(done / needed.length * 100) + '%';
+        label.textContent = `Verifying ${done}/${needed.length} addresses…`;
+        updateCardDriveBadge(p);
+        if (activeFilter === 'drive50') applyFilter();
+      }
+
+      wrap.classList.remove('visible');
+      fill.style.width = '0%';
+      geoRunning = false;
+      if (activeFilter === 'drive50') applyFilter();
+    }
+
+    function updateCardDriveBadge(p) {
+      const el = document.getElementById(`dt-${p.id}`);
+      const card = document.getElementById(`card-${p.id}`);
+      if (!el || !p.geo) return;
+      const { minutes, estimated } = p.geo;
+      if (minutes === null) {
+        el.textContent = '📍 location unknown';
+        el.className = 'dt-badge unknown';
+      } else {
+        const prefix = estimated ? '~' : '';
+        el.textContent = `🚗 ${prefix}${minutes} min from Merrimack`;
+        el.className = 'dt-badge ' + (minutes <= 30 ? 'near' : minutes <= 50 ? 'medium' : 'far');
+        if (card) card.classList.toggle('too-far', minutes > 50);
+      }
+    }
+
+    // ═════ Card template ═════
+    function buildCard(p) {
+      const row = p.row;
+      const c   = p.calc;
+      const id  = p.id;
+
+      const address = (row.Address || '').trim();
+      const city    = (row.City || '').trim();
+      const fullAddr = [address, city].filter(Boolean).join(', ') || 'Unknown Address';
+
+      const phone   = (row.Phone || '').trim();
+      const owner   = (row.OwnerName || '').trim();
+      const email   = (row.Email || '').trim();
+      const notes   = (row.Notes || '').trim();
+      const status  = (row.Status || '').trim();
+      const listing = (row.ListingURL || '').trim();
+
+      // Carry display
+      const carryClass = carryColorClass(c.carry);
+      const carryAbs   = Math.abs(Math.round(c.carry));
+      const carrySign  = c.carry < 0 ? '−' : '';
+      const carryStr   = `${carrySign}$${fmt(carryAbs)}`;
+      const tenantsCelebrate = c.carry <= 0
+        ? `<div class="carry-celebrate">🎉 Tenants cover your housing!</div>`
+        : '';
+
+      // Badges
+      const sClass = scorePillClass(c.houseHackScore);
+      const fhaPill = c.fhaEligible
+        ? `<span class="pill fha">🏦 FHA Eligible</span>`
+        : `<span class="pill conv">Conventional only</span>`;
+      const stClass = statusPillClass(status);
+      const statusPill = stClass ? `<span class="pill ${stClass}">${status}</span>` : '';
+
+      // Call button
+      const callEl = phone
+        ? `<a class="call-btn" href="tel:+1${cleanPhone(phone)}" onclick="event.stopPropagation()">📞 Call</a>`
+        : `<span class="call-btn disabled">📞 No phone</span>`;
+
+      // Drive time badge — placeholder until geocoded
+      const driveBadge = `<span id="dt-${id}" class="dt-badge loading">📍 locating…</span>`;
+
+      // Details breakdown
+      const isUrl = v => /^https?:\/\//i.test(v);
+      const detailRow = (label, value) => value
+        ? `<div class="row"><div class="label">${label}</div><div class="value">${value}</div></div>`
+        : '';
+      const phoneVal = phone ? `<a href="tel:+1${cleanPhone(phone)}">${phone}</a>` : '';
+      const emailVal = email ? `<a href="mailto:${email}">${email}</a>` : '';
+      const listingVal = listing
+        ? (isUrl(listing) ? `<a href="${listing}" target="_blank" rel="noopener noreferrer">View listing</a>` : listing)
+        : '';
+
+      const rentNote = c.rentalIncome > 0
+        ? `Net rent (${c.units - 1}/${c.units} units × 92%): <span class="num pos">$${fmt(Math.round(c.rentalIncome))}/mo</span>`
+        : `<span class="neg">No rental income — single-unit?</span>`;
+      const rentEstNote = c.rentEstimated
+        ? `<div style="color:#f59e0b;margin-top:4px">⚠ Gross rent estimated at $1,100/unit</div>`
+        : '';
+
+      const breakdown = `
+        <div class="breakdown">
+Price:          <span class="num">${fmtMoney(c.price)}</span>
+FHA 3.5% down:  <span class="num">${fmtMoney(c.downPayment)}</span>
+Loan amount:    <span class="num">${fmtMoney(c.loanAmount)}</span>
+P&I (7.5%/30y): <span class="num">$${fmt(Math.round(c.PI))}/mo</span>
+MIP (0.55%):    <span class="num">$${fmt(Math.round(c.MIP))}/mo</span>
+Tax + Ins:      <span class="num">$${fmt(Math.round(c.TaxIns))}/mo</span>
+PITI total:     <span class="num">$${fmt(Math.round(c.PITI))}/mo</span>
+${rentNote}
+─────────────
+Monthly carry:  <span class="num ${c.carry <= 0 ? 'pos' : 'neg'}">${carryStr}/mo</span>
+${rentEstNote}</div>
+      `;
+
+      const detailsHtml = `
+        <div class="card-details">
+          ${detailRow('Owner', owner)}
+          ${detailRow('Phone', phoneVal)}
+          ${detailRow('Email', emailVal)}
+          ${detailRow('Listing', listingVal)}
+          ${detailRow('Status', status)}
+          ${detailRow('Notes', notes)}
+          <div class="row"><div class="label">Math</div><div class="value">${breakdown}</div></div>
+        </div>
+      `;
+
+      const downStr  = fmtMoney(c.downPayment);
+      const priceStr = fmtMoney(c.price);
+      const tenantsClass = c.carry <= 0 ? 'tenants-cover' : '';
+
+      return `
+        <div class="card ${tenantsClass}" id="card-${id}" onclick="toggleCard(this, event)">
+          <div class="card-body">
+            <div class="card-address">${fullAddr}</div>
+            <div class="card-driverow">${driveBadge}</div>
+            <div class="card-keynums">
+              <span>${c.units} unit${c.units !== 1 ? 's' : ''}</span>
+              <span class="sep">·</span>
+              <span>${priceStr} asking</span>
+              <span class="sep">·</span>
+              <span class="down">Est. ${downStr} down</span>
+            </div>
+            <div class="carry-block">
+              <div class="carry-label">Monthly Carry</div>
+              <div class="carry-value ${carryClass}">${carryStr}<span class="carry-suffix">/mo</span></div>
+              ${tenantsCelebrate}
+            </div>
+            <div class="badges-row">
+              <span class="pill ${sClass}">Score ${c.houseHackScore}</span>
+              ${fhaPill}
+              ${statusPill}
+            </div>
+            <div class="call-row">
+              ${callEl}
+              <button class="expand-btn" onclick="toggleCard(this.closest('.card'), event); event.stopPropagation()">Details</button>
+            </div>
+          </div>
+          ${detailsHtml}
+        </div>
+      `;
+    }
+
+    function toggleCard(card, e) {
+      if (e && e.target && e.target.closest('a.call-btn')) return;
+      card.classList.toggle('expanded');
+    }
+
+    // ═════ Render ═════
+    function renderCards(list) {
+      const container = document.getElementById('cards-container');
+      const hint = document.getElementById('pull-hint');
+      if (!list.length) {
+        container.innerHTML = `
+          <div class="state-screen">
+            <div class="state-icon">🔍</div>
+            <div class="state-title">No leads match this filter</div>
+            <div class="state-sub">Tap <strong>All</strong> to see everything.</div>
+          </div>`;
+        hint.textContent = '';
+        return;
+      }
+      container.innerHTML = list.map(buildCard).join('');
+      hint.textContent = `${list.length} lead${list.length !== 1 ? 's' : ''} · auto-refreshes every 5 min`;
+
+      // Update drive-time badges from existing geo data
+      list.forEach(p => { if (p.geo) updateCardDriveBadge(p); });
+    }
+
+    function updateStats(filtered) {
+      const total = allProperties.length;
+      const lowCarry = allProperties.filter(p => p.calc.carry <= 1000).length;
+      const strong   = allProperties.filter(p => p.calc.houseHackScore >= 75).length;
+      const fhaCt    = allProperties.filter(p => p.calc.fhaEligible).length;
+      const bar = document.getElementById('stats-bar');
+      bar.innerHTML = `
+        <strong>${filtered.length}</strong> shown
+        <span class="stats-dot">•</span>
+        <strong>${total}</strong> total
+        <span class="stats-dot">•</span>
+        <strong>${lowCarry}</strong> ≤$1k carry
+        <span class="stats-dot">•</span>
+        <strong>${strong}</strong> score ≥75
+        <span class="stats-dot">•</span>
+        <strong>${fhaCt}</strong> FHA
+      `;
+    }
+
+    // ═════ Filter ═════
+    function setFilter(filter, btn) {
+      activeFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilter();
+    }
+
+    function getFiltered() {
+      let list = allProperties;
+      if (activeFilter === 'carry1k') list = list.filter(p => p.calc.carry <= 1000);
+      if (activeFilter === 'strong')  list = list.filter(p => p.calc.houseHackScore >= 75);
+      if (activeFilter === 'fha')     list = list.filter(p => p.calc.fhaEligible);
+      if (activeFilter === 'drive50') list = list.filter(p => p.geo && p.geo.minutes !== null && p.geo.minutes <= 50);
+      return list;
+    }
+
+    function applyFilter() {
+      const list = getFiltered();
+      renderCards(list);
+      updateStats(list);
+    }
+
+    // ═════ Data load ═════
+    function loadData() {
+      const btn = document.getElementById('refresh-btn');
+      const lastEl = document.getElementById('last-updated');
+      btn.classList.add('spinning');
+      lastEl.textContent = 'Refreshing…';
+
+      fetch(DATA_URL, { cache: 'no-store' })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(rows => {
+          btn.classList.remove('spinning');
+          if (!rows?.length) {
+            document.getElementById('cards-container').innerHTML = `
+              <div class="state-screen">
+                <div class="state-icon">📭</div>
+                <div class="state-title">No leads yet</div>
+                <div class="state-sub">Run the scraper.</div>
+              </div>`;
+            lastEl.textContent = 'No data';
+            return;
+          }
+
+          const normalized = rows.map(r => ({
+            id: r.id,
+            row: {
+              Address:     r.address     || '',
+              City:        r.city        || '',
+              Units:       r.units       ?? '',
+              Price:       r.price       || '',
+              GrossRent:   r.gross_rent  || '',
+              Phone:       r.phone       || '',
+              Email:       r.email       || '',
+              OwnerName:   r.owner_agent || '',
+              Notes:       r.notes       || '',
+              Status:      r.status      || '',
+              ListingURL:  r.mls         || ''
+            },
+            // Prefer precomputed values; fall back to client-side compute
+            _precomputed: (r.carry !== undefined && r.houseHackScore !== undefined) ? {
+              carry: parseFloat(r.carry),
+              houseHackScore: parseFloat(r.houseHackScore),
+              fhaEligible: !!r.fhaEligible,
+              estimatedDown: parseFloat(r.estimatedDown || 0)
+            } : null
+          }));
+
+          allProperties = normalized
+            .map(p => {
+              const calc = houseHack(p.row);
+              if (!calc) return null;
+              // Override with precomputed fields if available (keeps display consistent with generator)
+              if (p._precomputed) {
+                calc.carry = p._precomputed.carry;
+                calc.houseHackScore = p._precomputed.houseHackScore;
+                calc.fhaEligible = p._precomputed.fhaEligible;
+                if (p._precomputed.estimatedDown) calc.downPayment = p._precomputed.estimatedDown;
+              }
+              return { id: p.id, row: p.row, calc };
+            })
+            .filter(Boolean)
+            .sort((a, b) =>
+              b.calc.houseHackScore - a.calc.houseHackScore ||
+              a.calc.carry - b.calc.carry
+            );
+
+          applyFilter();
+
+          const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          lastEl.textContent = `Updated ${time} · ${allProperties.length} leads`;
+
+          loadDriveTimes();
+        })
+        .catch(err => {
+          btn.classList.remove('spinning');
+          document.getElementById('cards-container').innerHTML = `
+            <div class="state-screen">
+              <div class="state-icon">⚠️</div>
+              <div class="state-title">Could not load data</div>
+              <div class="state-sub">${err.message}</div>
+              <button class="retry-btn" onclick="loadData()">↻ Try Again</button>
+            </div>`;
+          lastEl.textContent = 'Error — tap Refresh';
+          console.error(err);
+        });
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadData, REFRESH_MS);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadData();
+    });
+
+    loadData();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
