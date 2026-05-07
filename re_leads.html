@@ -505,8 +505,8 @@
     // ═══════════════════════════════════════════════════════════════
     //  Config
     // ═══════════════════════════════════════════════════════════════
-    const SHEET_URL  =
-      'https://docs.google.com/spreadsheets/d/10g__NGVazTjNYTEUtYXuAlL2G_q7rc6dvRj3oTbV3q8/export?format=csv&gid=0';
+    const LEADS_JSON_URL =
+      'https://evertrace1-jpg.github.io/korey-re-leads/static/leads.json';
     const REFRESH_MS = 5 * 60 * 1000;
 
     // Merrimack, NH — origin for drive-time calculations
@@ -978,18 +978,42 @@
       btn.classList.add('spinning');
       lastEl.textContent = 'Refreshing…';
 
-      Papa.parse(SHEET_URL, {
-        download: true, header: true, skipEmptyLines: true,
+      // Map snake_case JSON record → PascalCase row schema the rest of the page reads
+      function adaptRecord(rec) {
+        const cityField = (rec.city || '').trim();
+        let city = cityField, state = '';
+        const m = cityField.match(/^(.*?),\s*([A-Z]{2})$/);
+        if (m) { city = m[1].trim(); state = m[2].trim(); }
+        return {
+          Address:    rec.address || '',
+          City:       city,
+          State:      state,
+          Zip:        '',
+          Price:      rec.price || '',
+          GrossRent:  rec.gross_rent || '',
+          Units:      rec.units != null ? String(rec.units) : '',
+          Phone:      rec.phone || '',
+          OwnerName:  rec.owner_agent || '',
+          Notes:      rec.notes || '',
+          Status:     rec.status || '',
+          ListingURL: rec.mls || '',
+        };
+      }
 
-        complete(results) {
+      fetch(LEADS_JSON_URL, { cache: 'no-store' })
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(records => {
           btn.classList.remove('spinning');
 
-          if (!results.data?.length) {
+          if (!Array.isArray(records) || !records.length) {
             document.getElementById('cards-container').innerHTML = `
               <div class="state-screen">
                 <div class="state-icon">📭</div>
-                <div class="state-title">Sheet is empty</div>
-                <div class="state-sub">Add properties to the Google Sheet and refresh.</div>
+                <div class="state-title">No leads yet</div>
+                <div class="state-sub">The next scrape will populate this feed.</div>
               </div>`;
             lastEl.textContent = 'No data';
             return;
@@ -1001,7 +1025,8 @@
             if (p.geo) prevGeoMap[cacheKey(p.row)] = p.geo;
           });
 
-          allProperties = results.data
+          allProperties = records
+            .map(adaptRecord)
             .map(row => {
               const calc = calculate(row);
               if (!calc) return null;
@@ -1023,21 +1048,19 @@
 
           // Start progressive geocoding
           loadDriveTimes();
-        },
-
-        error(err) {
+        })
+        .catch(err => {
           btn.classList.remove('spinning');
           document.getElementById('cards-container').innerHTML = `
             <div class="state-screen">
               <div class="state-icon">⚠️</div>
               <div class="state-title">Could not load data</div>
-              <div class="state-sub">Check your internet and that the sheet is shared publicly.</div>
+              <div class="state-sub">Check your internet connection.</div>
               <button class="retry-btn" onclick="loadData()">↻ Try Again</button>
             </div>`;
           lastEl.textContent = 'Error — tap Refresh';
-          console.error('Sheet fetch error:', err);
-        }
-      });
+          console.error('Leads fetch error:', err);
+        });
     }
 
     // ═══════════════════════════════════════════════════════════════
